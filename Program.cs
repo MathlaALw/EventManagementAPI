@@ -110,6 +110,9 @@ namespace EventManagementAPI
     });
             });
 
+            // register middleware
+            builder.Services.AddTransient<GlobalExceptionMiddleware>();   
+
 
 
             var app = builder.Build();
