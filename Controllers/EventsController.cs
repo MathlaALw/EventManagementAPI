@@ -23,7 +23,9 @@ namespace EventManagementAPI.Controllers
 
         // List all events (eager loads attendees count).
         [HttpGet("List all events")]
-
+        // Swagger Documentation
+        [SwaggerOperation(Summary = "List events", Description = "Eager loads attendees; supports filters/sort.")]
+        [ProducesResponseType(typeof(IEnumerable<EventDto>), 200)]
         public async Task<ActionResult<List<EventDto>>> GetAllAsync()
         {
             try
@@ -44,6 +46,9 @@ namespace EventManagementAPI.Controllers
         // Create a new event
         [HttpPost("Create a new event")]
         [Authorize(Roles = "Admin")] // Demo Username = "a" Password = "1"
+        // Swagger Documentation
+        [SwaggerOperation(Summary = "Create event", Description = "Requires JWT.")]
+        [ProducesResponseType(typeof(object), 201)]
         public async Task<ActionResult<Guid>> CreateAsync([FromBody] EventCreateDto dto)
         {
             try
