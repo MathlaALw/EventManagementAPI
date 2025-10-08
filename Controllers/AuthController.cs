@@ -2,6 +2,7 @@
 using EventManagementAPI.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Swashbuckle.AspNetCore.Annotations;
 using System.Security.Claims;
 
 namespace EventManagementAPI.Controllers
@@ -20,7 +21,10 @@ namespace EventManagementAPI.Controllers
         // Demo login: replace with real user validation (DB/Identity) later
         [HttpPost("login")]
         [AllowAnonymous]
-       
+        // swagger Operation -> Swagger documentation
+        [SwaggerOperation(Summary = "Login and get JWT")]
+        [ProducesResponseType(typeof(AuthResponseDto), 200)]
+        //-----
         public IActionResult Login([FromBody] LoginRequestDto req)
         {
             // Demo validation 
