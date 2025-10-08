@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Serilog;
+using EventManagementAPI.Middleware;
 namespace EventManagementAPI
 {
     public class Program
