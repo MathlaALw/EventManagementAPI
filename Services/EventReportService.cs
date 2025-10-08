@@ -5,7 +5,6 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using EventManagementAPI.DTOs;
 using AutoMapper;
-using EventManagementAPI.DTOs;
 using EventManagementAPI.Repo;
 namespace EventManagementAPI.Services
 {
@@ -14,7 +13,7 @@ namespace EventManagementAPI.Services
         private readonly IEventRepo _eventRepo;
         private readonly IAttendeeRepo _attendeeRepo;
         private readonly IMapper _mapper;
-        private readonly HttpClient _http;
+        private readonly HttpClient _http; // -> Integrate with an external API
 
         public EventReportService(IEventRepo eventRepo, IMapper mapper, IHttpClientFactory httpFactory, IAttendeeRepo attendeeRepo)
         {
@@ -22,6 +21,10 @@ namespace EventManagementAPI.Services
             _mapper = mapper;
             _http = httpFactory.CreateClient();
             _attendeeRepo = attendeeRepo;
+
+            // Set default headers
+            _http.Timeout = TimeSpan.FromSeconds(10);
+            _http.DefaultRequestHeaders.UserAgent.ParseAdd("EventManagementAPI/1.0");
         }
 
         // Returns upcoming events (within 'days') with attendee counts and a weather snippet
