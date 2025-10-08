@@ -13,10 +13,12 @@ namespace EventManagementAPI.Controllers
     public class EventsController : ControllerBase
     {
         private readonly IEventService _service;
+        private readonly ILogger<EventsController> _logger;
 
-        public EventsController(IEventService service)
+        public EventsController(IEventService service, ILogger<EventsController> logger)
         {
             _service = service;
+            _logger = logger;
         }
 
         // List all events (eager loads attendees count).
@@ -26,6 +28,8 @@ namespace EventManagementAPI.Controllers
         {
             try
             {
+                // Logger
+                _logger.LogInformation("Fetching all events", DateTime.UtcNow);
                 var events = await _service.GetAllAsync();
                 return new OkObjectResult(events);
             }

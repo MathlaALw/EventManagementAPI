@@ -9,18 +9,23 @@ namespace EventManagementAPI.Controllers
     public class AttendeesController : ControllerBase
     {
         private readonly IAttendeeService _service;
+        private readonly ILogger<AttendeesController> _logger;
 
-        public AttendeesController(IAttendeeService service)
+
+        public AttendeesController(IAttendeeService service, ILogger<AttendeesController> logger)
         {
             _service = service;
+            _logger = logger;
         }
-        
+
         // GET attendees by event id 
         [HttpGet("Get attendees by event id")]
         public IActionResult GetEventAttendees([FromQuery] Guid eventId)
         {
             try
             {
+                // Logger 
+                _logger.LogInformation("Fetching attendees for event {EventId}", DateTime.UtcNow);
                 var attendees = _service.GetByEventIdAsync(eventId).Result;
                 return new OkObjectResult(attendees); 
             }
