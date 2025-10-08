@@ -50,7 +50,7 @@ namespace EventManagementAPI.Services
                 var attendeeCount = (attendeesFromRepo != null && attendeesFromRepo.Count > 0)
                     ? attendeesFromRepo.Count
                     : ev.Attendees.Count;
-
+                // Weather
                 string weatherSnippet;
                 try
                 {
@@ -62,11 +62,12 @@ namespace EventManagementAPI.Services
                     else
                     {
                         var (lat, lon) = coords.Value;
-                       // weatherSnippet = await GetDailyWeatherSnippetAsync(lat, lon, ev.Date.Date);
+                        weatherSnippet = await GetDailyWeatherSnippetAsync(lat, lon, ev.Date.Date);
                     }
                 }
-                catch
+                catch (Exception ex)
                 {
+                    // You can log ex.Message here with ILogger/Serilog if desired
                     weatherSnippet = "Weather: unavailable";
                 }
 
@@ -78,26 +79,27 @@ namespace EventManagementAPI.Services
                     Location = ev.Location,
                     MaxAttendees = ev.MaxAttendees,
                     AttendeeCount = attendeeCount,
-                    //WeatherSnippet = weatherSnippet
+                    WeatherSnippet = weatherSnippet
                 });
             }
 
             return result;
         }
 
-        // -------- Helpers --------
+        // ------- Helpers --------
 
-        private async Task<(double lat, double lon)?> GetLatLonAsync(string location, Dictionary<string, (double, double)> cache)
+        private async Task<(double lat, double lon)?> GetLatLonAsync(
+            string location,
+            Dictionary<string, (double, double)> cache)
         {
             if (string.IsNullOrWhiteSpace(location)) return null;
 
             if (cache.TryGetValue(location, out var cached))
                 return cached;
 
-            // Open-Meteo Geocoding API
             var url = $"https://geocoding-api.open-meteo.com/v1/search?count=1&language=en&name={Uri.EscapeDataString(location)}";
-            var resp = await _http.GetFromJsonAsync<GeoSearchResponse>(url); // ✅ correct DTO
 
+            var resp = await _http.GetFromJsonAsync<GeoSearchResponse>(url);
             var first = resp?.results?.FirstOrDefault();
             if (first == null) return null;
 
@@ -106,30 +108,25 @@ namespace EventManagementAPI.Services
             return tuple;
         }
 
-        //private async Task<string> GetDailyWeatherSnippetAsync(double lat, double lon, DateTime dateUtc)
-        //{
-        //    var date = dateUtc.ToString("yyyy-MM-dd");
-        //    // Daily request for the event’s date: temps + weather code
-        //    var url =
-        //        $"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}" +
-        //        $"&daily=temperature_2m_max,temperature_2m_min,weathercode&timezone=auto" +
-        //        $"&start_date={date}&end_date={date}";
+        private async Task<string> GetDailyWeatherSnippetAsync(double lat, double lon, DateTime dateUtc)
+        {
+            var date = dateUtc.ToString("yyyy-MM-dd");
+            var url =
+                $"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}" +
+                $"&daily=temperature_2m_max,temperature_2m_min,weathercode&timezone=auto" +
+                $"&start_date={date}&end_date={date}";
 
-        //    var resp = await _http.GetFromJsonAsync<DailyForecastResponse>(url);
-        //    //if (resp?.daily == null || resp.daily.time is null || resp.daily.time.Length == 0)
-        //    //    return "Weather: n/a";
+            var resp = await _http.GetFromJsonAsync<DailyForecastResponse>(url);
+            if (resp?.daily?.time == null || resp.daily.time.Length == 0)
+                return "Weather: n/a";
 
-        //    //// Single-day arrays because start_date == end_date
-        //    //var tmin = SafeGet(resp.daily.temperature_2m_min, 0);
-        //    //var tmax = SafeGet(resp.daily.temperature_2m_max, 0);
-        //    //var code = SafeGet(resp.daily.weathercode, 0);
+            var tmin = SafeGet(resp.daily.temperature_2m_min, 0);
+            var tmax = SafeGet(resp.daily.temperature_2m_max, 0);
+            var code = SafeGet(resp.daily.weathercode, 0);
 
-        //    //var desc = WeatherCodeToText(code);
-        //    //if (double.IsNaN(tmin) || double.IsNaN(tmax))
-        //    //    return desc;
-
-        //    //return $"{desc}, {tmin:0.#}–{tmax:0.#}°C";
-        //}
+            var desc = WeatherCodeToText(code);
+            return (double.IsNaN(tmin) || double.IsNaN(tmax)) ? desc : $"{desc}, {tmin:0.#}–{tmax:0.#}°C";
+        }
 
         private static double SafeGet(double[]? arr, int idx)
             => (arr != null && idx >= 0 && idx < arr.Length) ? arr[idx] : double.NaN;
@@ -137,7 +134,6 @@ namespace EventManagementAPI.Services
         private static int SafeGet(int[]? arr, int idx)
             => (arr != null && idx >= 0 && idx < arr.Length) ? arr[idx] : -1;
 
-        // Minimal mapping for common Open-Meteo weather codes
         private static string WeatherCodeToText(int code) => code switch
         {
             0 => "Clear",
