@@ -129,6 +129,9 @@ namespace EventManagementAPI
 
             app.UseAuthorization();
 
+            // Global Exception Middleware
+            app.UseMiddleware<GlobalExceptionMiddleware>();
+
             app.MapControllers();
 
             app.Run();
