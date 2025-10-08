@@ -6,6 +6,7 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Serilog;
 using EventManagementAPI.Middleware;
+using Microsoft.AspNetCore.Mvc;
 namespace EventManagementAPI
 {
     public class Program
@@ -111,9 +112,27 @@ namespace EventManagementAPI
             });
 
             // register middleware
-            builder.Services.AddTransient<GlobalExceptionMiddleware>();   
+            builder.Services.AddTransient<GlobalExceptionMiddleware>();
 
-
+            // Adding Unify model validation response -> to return the Error with details
+            builder.Services.Configure<ApiBehaviorOptions>(options =>
+            {
+                options.InvalidModelStateResponseFactory = context =>
+                {
+                    var problem = new ValidationProblemDetails(context.ModelState)
+                    {
+                        Type = "about:blank",
+                        Title = "Validation failed",
+                        Status = StatusCodes.Status400BadRequest,
+                        Instance = context.HttpContext.Request.Path
+                    };
+                    problem.Extensions["traceId"] = context.HttpContext.TraceIdentifier;
+                    return new BadRequestObjectResult(problem)
+                    {
+                        ContentTypes = { "application/problem+json" }
+                    };
+                };
+            });
 
             var app = builder.Build();
             // Middleware integration for Serilog to automatically logs HTTP request/response pipeline
