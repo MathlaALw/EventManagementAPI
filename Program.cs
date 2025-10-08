@@ -7,6 +7,8 @@ using System.Text;
 using Serilog;
 using EventManagementAPI.Middleware;
 using Microsoft.AspNetCore.Mvc;
+using System.Reflection;
+using Microsoft.OpenApi.Models;
 namespace EventManagementAPI
 {
     public class Program
@@ -109,8 +111,37 @@ namespace EventManagementAPI
             Array.Empty<string>()
         }
     });
+                // Enable [SwaggerOperation] 
+                c.EnableAnnotations();
+
+                // XML comments (controllers + models)
+                var xmlName = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+                var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlName);
+                c.IncludeXmlComments(xmlPath, includeControllerXmlComments: true);
+                
+                
+                // JWT Bearer button in Swagger UI
+                c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+                {
+                    Name = "Authorization",
+                    Type = SecuritySchemeType.Http,
+                    Scheme = "bearer",
+                    BearerFormat = "JWT",
+                    In = ParameterLocation.Header,
+                    Description = "Enter: **Bearer {your JWT}**"
+                });
+                c.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme { Reference = new OpenApiReference
+                { Type = ReferenceType.SecurityScheme, Id = "Bearer" }
+            },
+            Array.Empty<string>()
+        }
+    });
             });
 
+            
             // register middleware
             builder.Services.AddTransient<GlobalExceptionMiddleware>();
 
