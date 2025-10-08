@@ -1,6 +1,8 @@
-﻿using EventManagementAPI.Services;
+﻿using EventManagementAPI.DTOs;
+using EventManagementAPI.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Swashbuckle.AspNetCore.Annotations;
 
 namespace EventManagementAPI.Controllers
 {
@@ -20,6 +22,11 @@ namespace EventManagementAPI.Controllers
 
         // GET attendees by event id 
         [HttpGet("Get attendees by event id")]
+
+        // Swagger documentation
+        [SwaggerOperation(Summary = "Get attendees by event id")]
+        [ProducesResponseType(typeof(IEnumerable<AttendeeDto>), 200)]
+        [ProducesResponseType(404)]
         public IActionResult GetEventAttendees([FromQuery] Guid eventId)
         {
             try
@@ -40,6 +47,14 @@ namespace EventManagementAPI.Controllers
         // Register an attendee for an event
         [HttpPost("Register an attendee for an event")]
         [Authorize] // Requires authentication -> Demo Username = "a" Password = "1"
+
+        // Swagger documentation
+        [SwaggerOperation(Summary = "Register attendee", Description = "Prevents duplicates and overbooking.")]
+        [ProducesResponseType(typeof(object), 201)]
+        [ProducesResponseType(400)]
+        [ProducesResponseType(401)]
+        [ProducesResponseType(404)]
+
         public IActionResult Register([FromBody] DTOs.AttendeeCreateDto dto)
         {
             try
