@@ -21,6 +21,7 @@ namespace EventManagementAPI.Controllers
 
         // List all events (eager loads attendees count).
         [HttpGet("List all events")]
+
         public async Task<ActionResult<List<EventDto>>> GetAllAsync()
         {
             try
@@ -38,7 +39,7 @@ namespace EventManagementAPI.Controllers
 
         // Create a new event
         [HttpPost("Create a new event")]
-        //[Authorize]
+        [Authorize(Roles = "Admin")] // Demo Username = "a" Password = "1"
         public async Task<ActionResult<Guid>> CreateAsync([FromBody] EventCreateDto dto)
         {
             try

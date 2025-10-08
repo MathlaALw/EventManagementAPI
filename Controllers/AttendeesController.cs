@@ -1,4 +1,5 @@
 ﻿using EventManagementAPI.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace EventManagementAPI.Controllers
@@ -33,6 +34,7 @@ namespace EventManagementAPI.Controllers
 
         // Register an attendee for an event
         [HttpPost("Register an attendee for an event")]
+        [Authorize] // Requires authentication -> Demo Username = "a" Password = "1"
         public IActionResult Register([FromBody] DTOs.AttendeeCreateDto dto)
         {
             try
