@@ -169,10 +169,18 @@ namespace EventManagementAPI
             // Middleware integration for Serilog to automatically logs HTTP request/response pipeline
             app.UseSerilogRequestLogging();
             // Configure the HTTP request pipeline.
+            // Swagger UI
             if (app.Environment.IsDevelopment())
             {
                 app.UseSwagger();
-                app.UseSwaggerUI();
+                // Swagger UI
+                app.UseSwaggerUI(o =>
+                {
+                    o.DocumentTitle = "Event Management API Docs";
+                    o.SwaggerEndpoint("/swagger/v1/swagger.json", "v1");
+                    o.DisplayRequestDuration();
+                    o.DefaultModelsExpandDepth(2);
+                });
             }
 
             app.UseHttpsRedirection();
