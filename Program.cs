@@ -1,4 +1,4 @@
-using EventManagementAPI.Repo;
+﻿using EventManagementAPI.Repo;
 using EventManagementAPI.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
@@ -9,6 +9,7 @@ using EventManagementAPI.Middleware;
 using Microsoft.AspNetCore.Mvc;
 using System.Reflection;
 using Microsoft.OpenApi.Models;
+
 namespace EventManagementAPI
 {
     public class Program
@@ -17,35 +18,37 @@ namespace EventManagementAPI
         {
             var builder = WebApplication.CreateBuilder(args);
 
-            // Connect to SQL Server Database
+            // ========= Serilog =========
+            Log.Logger = new LoggerConfiguration()
+                .ReadFrom.Configuration(builder.Configuration)
+                .Enrich.FromLogContext()
+                .WriteTo.Console()
+                .WriteTo.File("Logs/log-.txt", rollingInterval: RollingInterval.Day)
+                .CreateLogger();
+            builder.Host.UseSerilog();
+
+            // ========= DbContext =========
             var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
             builder.Services.AddDbContext<ApplicationDbContext>(options =>
                 options.UseSqlServer(connectionString)
-                .UseLazyLoadingProxies());
-           
+                       .UseLazyLoadingProxies());
 
-
-            // Add AutoMapper
+            // ========= AutoMapper =========
             builder.Services.AddAutoMapper(typeof(MappingProfile));
-            // Adding TheRepo
+
+            // ========= DI: Repos & Services =========
             builder.Services.AddScoped(typeof(IGenericRepo<>), typeof(GenericRepo<>));
             builder.Services.AddScoped<IEventRepo, EventRepo>();
             builder.Services.AddScoped<IAttendeeRepo, AttendeeRepo>();
 
-            // Adding the service 
-
             builder.Services.AddScoped<IEventService, EventService>();
             builder.Services.AddScoped<IAttendeeService, AttendeeService>();
             builder.Services.AddScoped<IEventReportService, EventReportService>();
-            // Add services to the container.
 
-            builder.Services.AddControllers();
-
-            // Http Client Factory
+            // HttpClient (for weather integration)
             builder.Services.AddHttpClient();
 
-         
-            // JWT Auth
+            // ========= JWT Auth =========
             var jwtKey = builder.Configuration["Jwt:Key"]!;
             var jwtIssuer = builder.Configuration["Jwt:Issuer"];
             var jwtAudience = builder.Configuration["Jwt:Audience"];
@@ -57,7 +60,7 @@ namespace EventManagementAPI
             })
             .AddJwtBearer(options =>
             {
-                options.RequireHttpsMetadata = false; // set true in production with HTTPS
+                options.RequireHttpsMetadata = false; // set true in prod with HTTPS
                 options.SaveToken = true;
                 options.TokenValidationParameters = new TokenValidationParameters
                 {
@@ -74,54 +77,31 @@ namespace EventManagementAPI
 
             builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
 
+            // ========= Controllers =========
+            builder.Services.AddControllers();
 
-            // Configure Serilog
-            Log.Logger = new LoggerConfiguration()
-                .ReadFrom.Configuration(builder.Configuration)
-                .Enrich.FromLogContext()
-                .WriteTo.Console()
-                .WriteTo.File("Logs/log-.txt", rollingInterval: RollingInterval.Day)
-                .CreateLogger();
-
-            builder.Host.UseSerilog();
-
-            // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+            // ========= Swagger =========
             builder.Services.AddEndpointsApiExplorer();
-
-            // Swagger (add JWT support)
             builder.Services.AddSwaggerGen(c =>
             {
-                c.SwaggerDoc("v1", new() { Title = "EventManagementAPI", Version = "v1" });
-                c.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+                c.SwaggerDoc("v1", new OpenApiInfo
                 {
-                    Name = "Authorization",
-                    Type = Microsoft.OpenApi.Models.SecuritySchemeType.Http,
-                    Scheme = "bearer",
-                    BearerFormat = "JWT",
-                    In = Microsoft.OpenApi.Models.ParameterLocation.Header,
-                    Description = "Enter: Bearer {your token}"
+                    Title = "EventManagementAPI",
+                    Version = "v1",
+                    Description = "Events, Attendees, Reports with JWT authentication."
                 });
-                c.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement
-    {
-        {
-            new Microsoft.OpenApi.Models.OpenApiSecurityScheme
-            {
-                Reference = new Microsoft.OpenApi.Models.OpenApiReference
-                { Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme, Id = "Bearer" }
-            },
-            Array.Empty<string>()
-        }
-    });
-                // Enable [SwaggerOperation] 
+
                 c.EnableAnnotations();
 
-                // XML comments (controllers + models)
+                // XML comments (guarded)
                 var xmlName = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
                 var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlName);
-                c.IncludeXmlComments(xmlPath, includeControllerXmlComments: true);
-                
-                
-                // JWT Bearer button in Swagger UI
+                if (File.Exists(xmlPath))
+                {
+                    c.IncludeXmlComments(xmlPath, includeControllerXmlComments: true);
+                }
+
+                // Define Bearer ONCE
                 c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
                 {
                     Name = "Authorization",
@@ -129,24 +109,29 @@ namespace EventManagementAPI
                     Scheme = "bearer",
                     BearerFormat = "JWT",
                     In = ParameterLocation.Header,
-                    Description = "Enter: **Bearer {your JWT}**"
+                    Description = "Enter: Bearer {your JWT}"
                 });
+
+                // Reference the same id ONCE
                 c.AddSecurityRequirement(new OpenApiSecurityRequirement
-    {
-        {
-            new OpenApiSecurityScheme { Reference = new OpenApiReference
-                { Type = ReferenceType.SecurityScheme, Id = "Bearer" }
-            },
-            Array.Empty<string>()
-        }
-    });
+                {
+                    {
+                        new OpenApiSecurityScheme
+                        {
+                            Reference = new OpenApiReference
+                            { Type = ReferenceType.SecurityScheme, Id = "Bearer" }
+                        },
+                        Array.Empty<string>()
+                    }
+                });
+
+             
             });
 
-            
-            // register middleware
+            // ========= Global Error Handling =========
             builder.Services.AddTransient<GlobalExceptionMiddleware>();
 
-            // Adding Unify model validation response -> to return the Error with details
+            // Uniform model validation response
             builder.Services.Configure<ApiBehaviorOptions>(options =>
             {
                 options.InvalidModelStateResponseFactory = context =>
@@ -167,25 +152,24 @@ namespace EventManagementAPI
             });
 
             var app = builder.Build();
-            // Middleware integration for Serilog to automatically logs HTTP request/response pipeline
+
+            // ========= Pipeline =========
             app.UseSerilogRequestLogging();
-            // Configure the HTTP request pipeline.
-            // Swagger UI
-            if (app.Environment.IsDevelopment())
+
+            // Keep Swagger enabled while you verify the doc renders
+            app.UseSwagger();
+            app.UseSwaggerUI(o =>
             {
-                app.UseSwagger();
-                // Swagger UI
-                app.UseSwaggerUI(o =>
-                {
-                    o.DocumentTitle = "Event Management API Docs";
-                    o.SwaggerEndpoint("/swagger/v1/swagger.json", "v1");
-                    o.DisplayRequestDuration();
-                    o.DefaultModelsExpandDepth(2);
-                });
-            }
+                o.DocumentTitle = "Event Management API Docs";
+                o.SwaggerEndpoint("https://localhost:7039/swagger/v1/swagger.json", "v1");
+                o.DisplayRequestDuration();
+                o.DefaultModelsExpandDepth(2);
+            });
 
             app.UseHttpsRedirection();
 
+            // Auth
+            //app.UseAuthentication();   // must be before UseAuthorization
             app.UseAuthorization();
 
             // Global Exception Middleware
