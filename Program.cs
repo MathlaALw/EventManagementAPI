@@ -31,6 +31,10 @@ namespace EventManagementAPI
             // Add services to the container.
 
             builder.Services.AddControllers();
+
+            // Http Client Factory
+            builder.Services.AddHttpClient();
+
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();

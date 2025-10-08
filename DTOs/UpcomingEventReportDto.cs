@@ -8,5 +8,7 @@
         public string Location { get; set; } = null!;
         public int MaxAttendees { get; set; }
         public int AttendeeCount { get; set; }
+    
+        public string WeatherSnippet { get; set; } = null!;
     }
 }
