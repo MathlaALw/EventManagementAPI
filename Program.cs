@@ -20,8 +20,9 @@ namespace EventManagementAPI
             // Connect to SQL Server Database
             var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
             builder.Services.AddDbContext<ApplicationDbContext>(options =>
-                options.UseSqlServer(connectionString));
-            //.UseLazyLoadingProxies());
+                options.UseSqlServer(connectionString)
+                .UseLazyLoadingProxies());
+           
 
 
             // Add AutoMapper

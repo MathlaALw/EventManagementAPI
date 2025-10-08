@@ -53,7 +53,7 @@ namespace EventManagementAPI.Services
                      // Using global exception handler ( KeyNotFoundException) 
                      ?? throw new KeyNotFoundException("Event not found.");
 
-            var attendees = ev.Attendees.ToList();
+            var attendees = ev.Attendees.ToList(); // -> Lazy loading
             return _mapper.Map<List<AttendeeDto>>(attendees);
         }
 
