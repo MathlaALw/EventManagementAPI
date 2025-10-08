@@ -50,6 +50,7 @@ namespace EventManagementAPI.Services
         {
             
             var ev = await _eventRepo.GetEventWithAttendeesAsync(eventId)
+                     // Using global exception handler ( KeyNotFoundException) 
                      ?? throw new KeyNotFoundException("Event not found.");
 
             var attendees = ev.Attendees.ToList();

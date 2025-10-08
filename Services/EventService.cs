@@ -52,6 +52,7 @@ namespace EventManagementAPI.Services
         public async Task<Guid> CreateAsync(EventCreateDto dto)
         {
             if (dto.Date.Date < DateTime.UtcNow.Date)
+                // using the Global Exception Handler 
                 throw new InvalidOperationException("Cannot create an event in the past.");
 
             var entity = _mapper.Map<Event>(dto);
