@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using Serilog;
 namespace EventManagementAPI
 {
     public class Program
@@ -69,6 +70,16 @@ namespace EventManagementAPI
             builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
 
 
+            // Configure Serilog
+            Log.Logger = new LoggerConfiguration()
+                .ReadFrom.Configuration(builder.Configuration)
+                .Enrich.FromLogContext()
+                .WriteTo.Console()
+                .WriteTo.File("Logs/log-.txt", rollingInterval: RollingInterval.Day)
+                .CreateLogger();
+
+            builder.Host.UseSerilog();
+
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
 
@@ -98,8 +109,11 @@ namespace EventManagementAPI
     });
             });
 
-            var app = builder.Build();
 
+
+            var app = builder.Build();
+            // Middleware integration for Serilog to automatically logs HTTP request/response pipeline
+            app.UseSerilogRequestLogging();
             // Configure the HTTP request pipeline.
             if (app.Environment.IsDevelopment())
             {
